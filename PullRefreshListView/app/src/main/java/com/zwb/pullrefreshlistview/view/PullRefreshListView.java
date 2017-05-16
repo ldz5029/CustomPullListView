@@ -1,5 +1,6 @@
 package com.zwb.pullrefreshlistview.view;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.drawable.AnimationDrawable;
 import android.util.AttributeSet;
@@ -18,7 +19,7 @@ import com.zwb.pullrefreshlistview.R;
 
 /**
  * Created by zwb
- * Description
+ * Description 下拉刷新控件
  * Date 2017/5/15.
  */
 
@@ -30,12 +31,12 @@ public class PullRefreshListView extends ListView {
     private int mHeaderHeight;//顶部刷新控件的高度
     private int mMinTopPadding;//最小下拉padding
     private int mMaxTopPadding = 0;//最大下拉padding
-    private int mCurTopPdding;//当前的padding
 
     private boolean isRemark;//添加一个标记,标记是否是在滑动到最顶部时下拉的
     private String mPullDownRefreshText = "下拉刷新";
     private String mReleaseRefreshText = "释放更新";
     private String mRefreshingText = "加载中...";
+    private static final float RATIO = 1.7F;//下拉系统，系数越大，刷新越困难
 
     private int mDownY;//按下是的y轴位置
     private RefreshStatus STATE = RefreshStatus.IDLE;//初始状态
@@ -94,8 +95,7 @@ public class PullRefreshListView extends ListView {
      * @param topPadding
      */
     private void setTopPadding(int topPadding) {
-//        Log.e(TAG,"=====topPadding====------------->"+topPadding);
-        if (mHeader != null) {
+        if (mHeader != null && topPadding <= mMaxTopPadding && topPadding >= mMinTopPadding) {
             mHeader.setPadding(mHeader.getPaddingLeft(), topPadding, mHeader.getPaddingRight(), mHeader.getPaddingBottom());
             mHeader.invalidate();
         }
@@ -124,6 +124,12 @@ public class PullRefreshListView extends ListView {
     }
 
 
+    /**
+     * 如果listview消费了这个事件，就不能滑动了
+     *
+     * @param ev 事件
+     * @return
+     */
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
@@ -134,7 +140,7 @@ public class PullRefreshListView extends ListView {
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-                if(handleAtMove(ev)){
+                if (handleAtMove(ev)) {
                     return true;
                 }
                 break;
@@ -142,12 +148,13 @@ public class PullRefreshListView extends ListView {
             case MotionEvent.ACTION_CANCEL:
                 if (STATE == RefreshStatus.RELEASE_REFRESH) {
                     STATE = RefreshStatus.REFRESHING;
+                    refreshHeaderStatus();
                 } else if (STATE == RefreshStatus.PULL_DOWN) {
                     STATE = RefreshStatus.IDLE;
+                    refreshHeaderStatus();
                 }
                 isRemark = false;
                 mDownY = 0;
-                refreshHeaderStatus();
                 break;
         }
         return super.onTouchEvent(ev);
@@ -167,10 +174,8 @@ public class PullRefreshListView extends ListView {
             return false;
         }
         int tempY = (int) ev.getY();
-        Log.e(TAG,"-------tempY------"+tempY);
-        Log.e(TAG,"-------mDownY--------------"+mDownY);
-        int fy = (int) tempY - mDownY;//设置一个下拉系数，造成下拉比较困难的感觉
-        Log.e(TAG,"-------fy------"+fy);
+        int fy = (int) ((tempY - mDownY) / RATIO);//设置一个下拉系数，造成下拉比较困难的感觉
+        int padding = fy - mHeaderHeight;
         //箭头滑动中的状态变化
         switch (STATE) {
             case IDLE:
@@ -180,8 +185,8 @@ public class PullRefreshListView extends ListView {
                 }
                 break;
             case PULL_DOWN:
-                setTopPadding(fy + mMinTopPadding);
-                if (fy >= mHeaderHeight + 30) {//当下拉到一定高度，状态变成可释放更新状态
+                setTopPadding(padding);
+                if (padding > mMaxTopPadding) {//当下拉到一定高度，状态变成可释放更新状态
                     STATE = RefreshStatus.RELEASE_REFRESH;
                     refreshHeaderStatus();
                 } else if (fy <= 0) {
@@ -191,16 +196,16 @@ public class PullRefreshListView extends ListView {
                 }
                 break;
             case RELEASE_REFRESH:
-                setTopPadding(fy + mMinTopPadding);
-                if (fy < mHeaderHeight + 30) {//当下拉到一定高度，状态变成可释放更新状态
+                setTopPadding(padding);
+                if (padding <= mMaxTopPadding) {//当下拉到一定高度，状态变成可释放更新状态
                     STATE = RefreshStatus.PULL_DOWN;
                     refreshHeaderStatus();
                 }
                 break;
         }
-        if(fy > 0){
+        if (fy > 0 && RefreshUtils.isAbsListViewToTop(this)) {
             return true;// 当前事件被我们处理并消费--这个特别重要
-        }else {
+        } else {
             return false;
         }
     }
@@ -211,7 +216,7 @@ public class PullRefreshListView extends ListView {
     private void refreshHeaderStatus() {
         switch (STATE) {
             case IDLE:
-                setTopPadding(mMinTopPadding);
+                hiddenRefreshHeaderView();
                 break;
             case PULL_DOWN:
                 showTopArrowDown();
@@ -222,10 +227,10 @@ public class PullRefreshListView extends ListView {
                 tvRefreshHeaderStatus.setText(mReleaseRefreshText);
                 break;
             case REFRESHING:
-                setTopPadding(30);
+                setTopPadding(mMaxTopPadding);
                 showTopLoadView();
                 tvRefreshHeaderStatus.setText(mRefreshingText);
-                if(onRefreshCallBack != null){
+                if (onRefreshCallBack != null) {
                     onRefreshCallBack.refreshing();
                 }
                 break;
@@ -282,7 +287,7 @@ public class PullRefreshListView extends ListView {
     /**
      * 结束下拉刷新
      */
-    public void endRefresh(){
+    public void endRefresh() {
         STATE = RefreshStatus.IDLE;
         isRemark = false;
         refreshHeaderStatus();
@@ -291,4 +296,21 @@ public class PullRefreshListView extends ListView {
     public interface OnRefreshCallBack {
         void refreshing();
     }
+
+    /**
+     * 隐藏下拉刷新控件--回弹动画
+     */
+    private void hiddenRefreshHeaderView(){
+        ValueAnimator animator = ValueAnimator.ofInt(mHeader.getPaddingTop(),mMinTopPadding);
+        animator.setDuration(500);
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int paddingTop = (int)animation.getAnimatedValue();
+                setTopPadding(paddingTop);
+            }
+        });
+        animator.start();
+    }
+
 }
