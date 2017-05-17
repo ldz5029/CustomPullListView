@@ -256,7 +256,7 @@ public class PullRefreshListView extends ListView implements AbsListView.OnScrol
             // 使子控件取消按下状态，否则子控件会执行长按事件 
             ev.setAction(MotionEvent.ACTION_CANCEL);
             super.onTouchEvent(ev);
-            return true;// 当前事件被我们处理并消费--这个特别重要
+            return true;// 当前事件被我们处理并消费--这个特别重要--消费这个事件,listView将无法拖动，这个时候顶部刷新控件的topPadding不断在变大，所以看起来像在下拉的感觉
         } else {
             return false;
         }
