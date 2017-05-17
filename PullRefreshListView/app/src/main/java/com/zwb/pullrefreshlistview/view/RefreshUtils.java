@@ -1,5 +1,6 @@
 package com.zwb.pullrefreshlistview.view;
 
+import android.view.View;
 import android.widget.AbsListView;
 
 /**
@@ -11,7 +12,7 @@ import android.widget.AbsListView;
 public class RefreshUtils {
 
     /**
-     * absListView的子类是否以及下拉到最顶部
+     * absListView的子类是否已经下拉到最顶部
      *
      * @param absListView absListView
      * @return false
@@ -29,5 +30,25 @@ public class RefreshUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * absListView的子类是否已经上拉到最底部
+     *
+     * @param absListView absListView
+     * @return false
+     */
+    public static boolean isAbsListViewToBottom(AbsListView absListView) {
+        //第一步，已经滚动到最后一个子控件
+        if (absListView == null || absListView.getAdapter() == null || absListView.getAdapter().getCount() <= 0
+                || absListView.getLastVisiblePosition() != absListView.getAdapter().getCount() - 1) {
+            return false;
+        }
+
+//        View child = absListView.getChildAt(absListView.getLastVisiblePosition() - absListView.getFirstVisiblePosition());
+//        if(absListView.getHeight() == child.getBottom()){
+//            return true;
+//        }
+        return true;
     }
 }

@@ -13,7 +13,7 @@
         android:layout_marginTop="10dp">
 
         <ImageView
-            android:id="@+id/refresh_arrow"
+            android:id="@+id/refresh__header_arrow"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_gravity="center"

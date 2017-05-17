@@ -57,16 +57,10 @@ public class ListAdapter extends BaseAdapter {
 
     static class ViewHolder {
         public TextView tvContent;
-        private View view;
 
         public ViewHolder(View view) {
-            this.view = view;
             tvContent = (TextView) view.findViewById(R.id.tv_content);
         }
-    }
-
-    public void notifyData(){
-        notifyDataSetChanged();
     }
 
 }

@@ -3,6 +3,9 @@ package com.zwb.pullrefreshlistview;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Toast;
 
 import com.zwb.pullrefreshlistview.view.ListAdapter;
 import com.zwb.pullrefreshlistview.view.PullRefreshListView;
@@ -13,7 +16,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private PullRefreshListView pullRefreshListView;
     private ListAdapter adapter;
-    private List<String> mDatas;
+    private List<String> mDatas = new ArrayList<>();
+    ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,14 +30,38 @@ public class MainActivity extends AppCompatActivity {
         pullRefreshListView.setOnRefreshCallBack(new PullRefreshListView.OnRefreshCallBack() {
             @Override
             public void refreshing() {
+                Toast.makeText(MainActivity.this, "正在下拉刷新中", Toast.LENGTH_SHORT).show();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        initData();
+                        adapter.notifyDataSetChanged();
+                        pullRefreshListView.endRefresh();
+                    }
+                }, 2000);
+            }
+
+            @Override
+            public void loading() {
+                Toast.makeText(MainActivity.this, "正在加载更多中", Toast.LENGTH_SHORT).show();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         adData();
-                        adapter.notifyData();
-                        pullRefreshListView.endRefresh();
+                        adapter.notifyDataSetChanged();
+                        pullRefreshListView.endLoadMore();
                     }
-                }, 2000);
+                }, 1000);
+            }
+        });
+
+        pullRefreshListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(MainActivity.this, "长按事件", Toast.LENGTH_SHORT).show();
+                mDatas.remove(position - 1);
+                adapter.notifyDataSetChanged();
+                return true;
             }
         });
     }
@@ -41,15 +69,15 @@ public class MainActivity extends AppCompatActivity {
     private static Handler handler = new Handler();
 
     private void initData() {
-        mDatas = new ArrayList<>();
-        for (int i = 0; i < 0; i++) {
+        mDatas.clear();
+        for (int i = 0; i < 15; i++) {
             mDatas.add("pullRefreshView----->" + i);
         }
     }
 
     private void adData() {
-        for (int i = 0; i < 3; i++) {
-            mDatas.add(0, "add data----->" + i);
+        for (int i = 0; i < 2; i++) {
+            mDatas.add("add data----->" + i);
         }
     }
 
